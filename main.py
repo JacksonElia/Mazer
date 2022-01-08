@@ -15,18 +15,11 @@ import stored_mazes
 class Window(QMainWindow):
     def __init__(self):
         super().__init__()
-
         # Maze Values
-        self.maze_width = None
-        self.maze_height = None
-
-        # Change numbers in here to set starting maze size
-        if self.maze_width is None:
-            self.maze_width = 16
-        if self.maze_height is None:
-            self.maze_height = 16
-
+        self.maze_width = 16
+        self.maze_height = 16
         self.editing = False
+        self.solving = False
         # Switch is for turning tiles to walls and vice versa, start is to place the start exit for exit
         self.edit_mode = "switch"
         # Used to make sure the window doesn't update after it finds the path
@@ -62,9 +55,11 @@ class Window(QMainWindow):
         self.init_window()
 
     def init_window(self):
-        # Makes and Sets Window Properties and Widgets
+        """
+        Makes and Sets Window Properties and Widgets
+        """
         self.setWindowTitle("Mazer")
-        self.solve_button.clicked.connect(self.thread)
+        self.solve_button.clicked.connect(self.start_thread)
         self.solve_button.setFont(self.big_font)
         self.edit_button.clicked.connect(self.edit_button_pressed)
         self.edit_button.setFont(self.big_font)
@@ -91,6 +86,9 @@ class Window(QMainWindow):
         self.show()
 
     def init_geometry(self):
+        """
+        Sets up the whole gui
+        """
         window_width = self.maze_width * 50 if self.maze_width * 50 >= 900 else 900
         window_height = self.maze_height * 50 + 100
         # Automatically puts the window in the middle of the screen
@@ -107,8 +105,11 @@ class Window(QMainWindow):
         self.text_box_height.setGeometry(545, window_height - 49, 160, 28)
         self.text_label.setGeometry(720, window_height - 77, 160, 60)
 
-    # Method is called every time self.update() is called
     def paintEvent(self, event):
+        """
+        Method is called when self.update() is called. It is used to change the pixel color of the window to illustrate
+        a maze
+        """
         # Changes the list that the window will paint based on if the maze has been solved
         if self.solved == 1:
             # Will paint the maze the first time it has been solved
@@ -125,30 +126,35 @@ class Window(QMainWindow):
         # Iterates through the maze list each tile at a time
         for row in maze_painting_list:
             for tile in row:
-                # Checks if the tiles is a wall or blank and sets the color accordingly
-                if tile["tile_type"] == "wall":
-                    painter.setBrush(QBrush(Qt.black, Qt.SolidPattern))
-                    painter.setPen(QPen(Qt.black, 1))
-                elif tile["tile_type"] == "blank":
-                    painter.setBrush(QBrush(Qt.white, Qt.SolidPattern))
-                    painter.setPen(QPen(Qt.black, 1))
-                elif tile["tile_type"] == "path":
-                    painter.setBrush(QBrush(Qt.blue, Qt.SolidPattern))
-                    painter.setPen(QPen(Qt.black, 1))
-                elif tile["tile_type"] == "solving":
-                    painter.setBrush(QBrush(Qt.red, Qt.SolidPattern))
-                    painter.setPen(QPen(Qt.red, 1))
-                elif tile["tile_type"] == "start":
-                    painter.setBrush(QBrush(Qt.green, Qt.SolidPattern))
-                    painter.setPen(QPen(Qt.black, 1))
-                elif tile["tile_type"] == "end":
-                    painter.setBrush(QBrush(Qt.darkGreen, Qt.SolidPattern))
-                    painter.setPen(QPen(Qt.black, 1))
+                match tile["tile_type"]:
+                    case "wall":
+                        painter.setBrush(QBrush(Qt.black, Qt.SolidPattern))
+                        painter.setPen(QPen(Qt.black, 1))
+                    case "blank":
+                        painter.setBrush(QBrush(Qt.white, Qt.SolidPattern))
+                        painter.setPen(QPen(Qt.black, 1))
+                    case "path":
+                        painter.setBrush(QBrush(Qt.blue, Qt.SolidPattern))
+                        painter.setPen(QPen(Qt.black, 1))
+                    case "solving":
+                        painter.setBrush(QBrush(Qt.red, Qt.SolidPattern))
+                        painter.setPen(QPen(Qt.red, 1))
+                    case "start":
+                        painter.setBrush(QBrush(Qt.green, Qt.SolidPattern))
+                        painter.setPen(QPen(Qt.black, 1))
+                    case "end":
+                        painter.setBrush(QBrush(Qt.darkGreen, Qt.SolidPattern))
+                        painter.setPen(QPen(Qt.black, 1))
+                    case _:
+                        print("Try checking to make sure each tile has a valid type")
                 rectangle = QRect(tile["x_coord"], tile["y_coord"], 50, 50)
                 painter.drawRect(rectangle)
 
-    # Called everytime the user clicks on the window
     def mousePressEvent(self, event):
+        """
+        This method is called whenever the user clicks on the window. It is used to edit the maze.
+        :return:
+        """
         if self.editing:
             mouse_x = event.x()
             mouse_y = event.y()
@@ -163,15 +169,21 @@ class Window(QMainWindow):
                 self.edit_mode = "switch"
                 self.update()
 
-    # Creates a thread so that the maze can be updated as it is being solved
-    def thread(self):
+    def start_thread(self):
+        """
+        Creates a thread so that the maze can be updated as it is being solved
+        """
         t1 = Thread(target=self.solve_button_pressed_thread)
         t1.start()
 
-    # Clears the maze and then solves it
     def solve_button_pressed_thread(self):
+        """
+        Clears the maze and then solves it
+        """
         print(self.maze_list)
+        self.edit_button.setDisabled(True)
         self.solved = 0
+        self.solving = True
         clear_maze(maze_list=self.maze_list)
         solve_maze(maze_list=self.maze_list, window=self)
         self.update()
@@ -179,8 +191,11 @@ class Window(QMainWindow):
         sleep(.01)
         self.update()
 
-    # Clears the maze and then opens the edit options
     def edit_button_pressed(self):
+        """
+        Clears the maze and then opens the edit options.
+        :return:
+        """
         self.solved = 0
         self.editing = not self.editing
         # Changes the GUI based on if the user is editing or not
@@ -199,8 +214,10 @@ class Window(QMainWindow):
         clear_maze(maze_list=self.maze_list)
         self.update()
         
-    # Loads a maze from stored_mazes.py
     def pick_maze_button_pressed(self):
+        """
+        Loads a maze from stored_mazes.py
+        """
         self.solved = 0
         # Makes sure the same maze isn't picked twice
         random_maze_num = random.randrange(len(stored_mazes.stored_mazes))
@@ -216,22 +233,27 @@ class Window(QMainWindow):
         self.init_geometry()
         self.update()
 
-    # Makes it so the next time the user clicks a border, it will become the start of the maze
     def start_button_pressed(self):
+        """
+        Makes it so the next time the user clicks a border, it will become the start of the maze
+        """
         self.edit_mode = "start"
         self.text_label.setText("Click the maze to place the start.")
 
-    # Makes it so the next time the user clicks a border, it will become the end of the maze
     def end_button_pressed(self):
+        """
+        Makes it so the next time the user clicks a border, it will become the end of the maze
+        """
         self.edit_mode = "end"
         self.text_label.setText("Click the maze to place the end.")
 
-    # Is called when a text box is changed, sets the size of the maze and does formatting for the window to match it
     def text_box_edited(self):
+        """
+        Is called when a text box is changed, sets the size of the maze and does formatting for the window to match it
+        """
         # Makes sure dumbasses like Brenton can't break the program by trying to have negative rows
         self.text_box_width.setText(self.text_box_width.text().replace('-', ''))
         self.text_box_height.setText(self.text_box_height.text().replace('-', ''))
-
         if self.text_box_width.text() == "":
             self.maze_width = 16
         elif int(self.text_box_width.text()) * 50 > self.screen_width:
