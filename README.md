@@ -15,3 +15,5 @@ When the user is editing, they can place the start and end of the maze, add or r
 
 # Use
 You're free to use this code as long as you credit me.
+
+MIT © [Traptricker](https://github.com/Traptricker)
